@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Whale Radar</title>
+<style>
+:root{--bg:#0b0f17;--card:#141b29;--tx:#e6ebf5;--mut:#8592a8;--g:#2ecc71;--r:#ff5c5c;--b:#4da3ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px system-ui,sans-serif;padding:12px;max-width:760px;margin:auto}
+h1{font-size:20px;margin:6px 0 12px}
+.tabs{display:flex;gap:8px;margin-bottom:10px}
+.tabs button{flex:1;padding:10px;border:0;border-radius:8px;background:var(--card);color:var(--mut);font-weight:600}
+.tabs button.on{background:var(--b);color:#fff}
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;color:var(--mut);flex-wrap:wrap}
+select,.bar button{background:var(--card);color:var(--tx);border:1px solid #26314a;border-radius:6px;padding:6px 8px}
+.item{background:var(--card);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.row{display:flex;justify-content:space-between;gap:8px}
+.big{font-weight:700}.mut{color:var(--mut);font-size:12px;word-break:break-all}
+.buy,.out{color:var(--g)}.in{color:var(--r)}
+.tag{font-size:11px;background:#1f2a40;border-radius:4px;padding:2px 6px;margin-right:4px}
+a{color:var(--b);text-decoration:none}
+</style>
+</head>
+<body>
+<h1>🐋 Whale Radar</h1>
+<div class="tabs">
+  <button id="t1" class="on">Meme Coin Buys</button>
+  <button id="t2">BTC/ETH ↔ Exchange</button>
+</div>
+<div class="bar">
+  Min:
+  <select id="min"></select>
+  <button id="rf">Refresh</button>
+  <span id="st"></span>
+</div>
+<div id="list"></div>
+<script>
+let tab = 1;
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+const short = (s) => s ? s.slice(0, 6) + "…" + s.slice(-4) : "-";
+const ago = (t) => { const m = Math.round((Date.now() - new Date(t)) / 60000); return m < 60 ? m + " mnt lalu" : Math.round(m / 60) + " jam lalu"; };
+const EXP = { solana: "https://solscan.io/tx/", eth: "https://etherscan.io/tx/", base: "https://basescan.org/tx/", bsc: "https://bscscan.com/tx/" };
+
+function opts() {
+  const v = tab === 1 ? [5000, 10000, 25000, 50000, 100000] : [500000, 1000000, 5000000, 10000000];
+  $("min").innerHTML = v.map((x) => `<option value="${x}">${fmt(x)}</option>`).join("");
+  $("min").value = tab === 1 ? 10000 : 1000000;
+}
+
+async function load() {
+  $("st").textContent = "memuat…";
+  $("list").innerHTML = "";
+  try {
+    const r = await fetch((tab === 1 ? "/api/meme" : "/api/exchange") + "?min=" + $("min").value);
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    $("st").textContent = d.length + " hasil";
+    if (!d.length) $("list").innerHTML = '<div class="item mut">Belum ada transaksi. Coba turunkan batas minimum.</div>';
+    $("list").innerHTML += d.map((x) => tab === 1 ? `
+      <div class="item"><div class="row"><span class="big">${x.token}</span><span class="big buy">BUY ${fmt(x.usd)}</span></div>
+      <div class="mut"><span class="tag">${x.chain}</span>${short(x.wallet)} · ${ago(x.time)} · <a href="${EXP[x.chain]}${x.tx}" target="_blank">tx</a></div></div>` : `
+      <div class="item"><div class="row"><span class="big">${Number(x.amount).toLocaleString()} ${x.symbol}</span>
+      <span class="big ${x.direction === "inflow" ? "in" : "out"}">${x.direction === "inflow" ? "→ ke exchange" : x.direction === "outflow" ? "← keluar exchange" : "transfer"}</span></div>
+      <div class="mut">${fmt(x.usd)} · ${x.from} → ${x.to} · ${ago(x.time)}</div></div>`).join("");
+  } catch (e) {
+    $("st").textContent = "";
+    $("list").innerHTML = `<div class="item in">Gagal: ${e.message}</div>`;
+  }
+}
+
+function sw(n) { tab = n; $("t1").className = n === 1 ? "on" : ""; $("t2").className = n === 2 ? "on" : ""; opts(); load(); }
+$("t1").onclick = () => sw(1);
+$("t2").onclick = () => sw(2);
+$("rf").onclick = load;
+$("min").onchange = load;
+opts(); load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
