@@ -44,9 +44,9 @@ const ago = (t) => { const m = Math.round((Date.now() - new Date(t)) / 60000); r
 const EXP = { solana: "https://solscan.io/tx/", eth: "https://etherscan.io/tx/", base: "https://basescan.org/tx/", bsc: "https://bscscan.com/tx/" };
 
 function opts() {
-  const v = tab === 1 ? [5000, 10000, 25000, 50000, 100000] : [500000, 1000000, 5000000, 10000000];
+  const v = tab === 1 ? [100, 500, 1000, 5000, 10000, 25000, 50000, 100000] : [100000, 250000, 500000, 1000000, 5000000];
   $("min").innerHTML = v.map((x) => `<option value="${x}">${fmt(x)}</option>`).join("");
-  $("min").value = tab === 1 ? 10000 : 1000000;
+  $("min").value = tab === 1 ? 10000 : 250000;
 }
 
 async function load() {
